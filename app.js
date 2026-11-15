@@ -39,6 +39,7 @@ const randCode = () => {
 function freshState() {
   return {
     v: 1,
+    started: false,
     name: 'Les As de Cointe',
     sub: 'RDC Cointe Liège · entre amis',
     levels: JSON.parse(JSON.stringify(DEFAULT_LEVELS)),
@@ -49,6 +50,7 @@ function freshState() {
     playedSec: 0,
     autoNext: true,
     sound: true,
+    dealerTracking: false,
     keepAwake: true,
     breakMin: 10,
     adhocEnds: null,
@@ -368,7 +370,7 @@ function seatRadii() {
 function renderSeats() {
   const box = $('#seats');
   const n = state.players.length;
-  const pos = positions();
+  const pos = state.dealerTracking ? positions() : { d: null, sb: null, bb: null };
   const { rx, ry } = seatRadii();
   box.innerHTML = state.players.map((p, k) => {
     const a = Math.PI / 2 + (k * 2 * Math.PI / n);
@@ -407,10 +409,10 @@ function renderStats() {
   const nb = nextBreakIn();
   const a = alive().length;
   let html = '';
-  html += statCard('Joueurs en lice', a + ' <small>/ ' + state.players.length + '</small>', '', 'hero');
+  html += statCard('Joueurs restants', a + ' <small>/ ' + state.players.length + '</small>', '', 'hero');
   html += statCard('Recave', rb.v, rb.sub, rb.cls);
-  html += statCard('Prize pool', euro(prizePool()), totalRebuys() ? totalRebuys() + ' recave' + (totalRebuys() > 1 ? 's' : '') : '');
-  html += statCard('Tapis moyen', chips(avgStack()), 'jetons');
+  html += statCard('Cagnotte', euro(prizePool()), totalRebuys() ? totalRebuys() + ' recave' + (totalRebuys() > 1 ? 's' : '') : '');
+  html += statCard('Jetons par joueur', chips(avgStack()), 'en moyenne');
   html += statCard('Temps de jeu', mmss(state.playedSec));
   if (nb !== null) html += statCard('Prochaine pause', 'dans ' + mmss(nb));
   box.innerHTML = html;
@@ -432,6 +434,7 @@ function renderAll() {
   if (!spectate) renderStats();
   $('#btnPrev').disabled = state.i === 0;
   $('#btnNext').disabled = state.i >= state.levels.length - 1;
+  $('#btnDeal').style.display = state.dealerTracking ? '' : 'none';
 }
 
 /* ---------- petit message ---------- */
@@ -465,10 +468,10 @@ function openPop(k, anchor) {
   popFor = k;
   const pos = positions();
   const pop = $('#pop');
-  const canDeal = !p.out && alive().length > 1;
+  const canDeal = state.dealerTracking && !p.out && alive().length > 1;
   pop.innerHTML = `
     <h3>${esc(p.name)}</h3>
-    <div class="meta">${p.out ? 'Éliminé — ' + (p.place ? ord(p.place) + ' place' : 'place inconnue') : 'En jeu'}${p.rebuys ? ' · ' + p.rebuys + ' recave' + (p.rebuys > 1 ? 's' : '') : ''}${k === pos.d ? ' · bouton' : ''}</div>
+    <div class="meta">${p.out ? 'Éliminé — ' + (p.place ? ord(p.place) + ' place' : 'place inconnue') : 'En jeu'}${p.rebuys ? ' · ' + p.rebuys + ' recave' + (p.rebuys > 1 ? 's' : '') : ''}${state.dealerTracking && k === pos.d ? ' · bouton' : ''}</div>
     <div class="acts">
       ${p.out
         ? '<button data-act="back" class="good">↺ Le remettre en jeu</button>'
@@ -476,6 +479,7 @@ function openPop(k, anchor) {
       ${!p.out && rebuyOpen() ? '<button data-act="rebuy">➕ Recave (' + euro(state.rebuyAmt) + ')</button>' : ''}
       ${canDeal && k !== pos.d ? '<button data-act="deal">◉ Lui donner le bouton</button>' : ''}
       <button data-act="rename">✎ Renommer</button>
+      ${state.players.length > 2 ? '<div class="row tight" style="margin-top:2px"><button data-act="moveL">◀ Reculer</button><button data-act="moveR">Avancer ▶</button></div>' : ''}
     </div>`;
   pop.classList.add('on');
   const r = anchor.getBoundingClientRect();
@@ -487,6 +491,17 @@ function openPop(k, anchor) {
   pop.style.top = y + 'px';
 }
 function closePop() { $('#pop').classList.remove('on'); popFor = null; }
+
+/* échange deux places : l'ordre autour de la table est l'ordre du jeu */
+function swapSeats(a, b) {
+  const t = state.players[a];
+  state.players[a] = state.players[b];
+  state.players[b] = t;
+  if (state.dealer === a) state.dealer = b;
+  else if (state.dealer === b) state.dealer = a;
+  save(); renderAll();
+  toast(state.players[b].name + ' change de place avec ' + state.players[a].name);
+}
 
 function eliminate(k) {
   const p = state.players[k];
@@ -504,6 +519,130 @@ function eliminate(k) {
     toast(p.name + ' éliminé — ' + ord(p.place) + ' place');
   }
   save(); renderAll();
+}
+
+/* ===========================================================
+   ÉCRAN DE DÉPART
+   =========================================================== */
+let introCount = 8, introPace = 20, introNames = [];
+const EST_GENERIQUE = (n) => /^Joueur \d+$/.test(n || '');
+
+function introOpen() {
+  introCount = state.players.length;
+  introNames = state.players.map(p => p.name);
+  const prem = state.levels.find(l => !l.brk);
+  introPace = prem ? prem.min : 20;
+  $('#introSub').textContent = state.sub;
+  $('#introResume').classList.toggle('off', !state.started);
+  renderIntroNames();
+  syncPace();
+  $('#intro').classList.remove('off');
+}
+function introClose() { $('#intro').classList.add('off'); }
+
+function renderIntroNames() {
+  $('#pCount').textContent = introCount;
+  $('#pMinus').disabled = introCount <= 2;
+  $('#pPlus').disabled = introCount >= 12;
+  const g = $('#nameGrid');
+  g.innerHTML = Array.from({ length: introCount }, (_, i) => {
+    const v = EST_GENERIQUE(introNames[i]) ? '' : (introNames[i] || '');
+    return `<input type="text" maxlength="18" placeholder="Joueur ${i + 1}" value="${esc(v)}" data-n="${i}">`;
+  }).join('');
+  $$('[data-n]', g).forEach(inp => inp.addEventListener('input', e => {
+    introNames[+e.target.dataset.n] = e.target.value;
+  }));
+}
+
+function syncPace() {
+  $$('#paceIntro button').forEach(b => b.classList.toggle('on', +b.dataset.pace === introPace));
+  const niveaux = state.levels.filter(l => !l.brk).length;
+  const pauses = state.levels.filter(l => l.brk).reduce((a, l) => a + l.min, 0);
+  const tot = niveaux * introPace + pauses;
+  $('#paceHint').textContent = 'La structure couvre ' + Math.floor(tot / 60) + ' h ' + pad(tot % 60) +
+    ' au maximum. En pratique ça se termine bien avant, dès qu\'il ne reste qu\'un joueur.';
+}
+
+function introStart() {
+  const noms = [];
+  for (let i = 0; i < introCount; i++) {
+    const v = (introNames[i] || '').trim();
+    noms.push(v || 'Joueur ' + (i + 1));
+  }
+  state.players = noms.map((n, i) => ({ id: i + 1, name: n, out: false, place: null, rebuys: 0 }));
+  state.nextId = noms.length + 1;
+  state.levels.forEach(l => { if (!l.brk) l.min = introPace; });
+  state.i = 0;
+  state.left = durOf(0);
+  state.running = false;
+  state.endsAt = null;
+  state.playedSec = 0;
+  state.dealer = 0;
+  state.adhocEnds = null;
+  state.started = true;
+  lastWarn = -1;
+  save();
+  introClose();
+  renderAll();
+  const b = $('#btnPlay');
+  b.classList.remove('nudge');
+  void b.offsetWidth;
+  b.classList.add('nudge');
+  toast('Table prête — appuie sur Démarrer quand vous êtes installés');
+}
+
+/* ===========================================================
+   MÉMO
+   =========================================================== */
+function renderMemo() {
+  $('#memoBody').innerHTML = `
+    <div class="memo-item">
+      <div class="memo-badges"><i class="d">D</i><i class="sb">SB</i><i class="bb">BB</i></div>
+      <b>Les trois pastilles</b>
+      <span><b style="display:inline;color:var(--gold)">D</b> le donneur (le « bouton »).
+      <b style="display:inline;color:var(--blue)">SB</b> la petite blind et
+      <b style="display:inline;color:var(--red)">BB</b> la grosse blind : les deux joueurs
+      obligés de miser avant de voir leurs cartes.
+      <em>C'est désactivé par défaut, parce que le jeton qui tourne sur la vraie table le dit déjà
+      et qu'il faudrait appuyer à chaque main. Si tu y tiens : Réglages → Suivre le donneur.</em></span>
+    </div>
+    <div class="memo-item">
+      <b>Cagnotte</b>
+      <span>Toutes les caves additionnées, recaves comprises. ${state.players.length} joueurs
+      à ${euro(state.buyin)} font ${euro(state.players.length * state.buyin)}, et chaque recave
+      l'augmente de ${euro(state.rebuyAmt)}. C'est ce montant qui se partage à la fin.
+      <em>Rien n'est encaissé par l'application : c'est juste le tableau des comptes.</em></span>
+    </div>
+    <div class="memo-item">
+      <b>Jetons par joueur</b>
+      <span>Le nombre moyen de jetons qu'il reste à chaque joueur encore en jeu. C'est le vrai
+      thermomètre de la partie : comparé aux blindes du moment, il dit s'il reste de la marge
+      ou s'il faut commencer à jouer. Il monte mécaniquement à chaque élimination.</span>
+    </div>
+    <div class="memo-item">
+      <b>Blindes et niveaux</b>
+      <span>Les mises obligatoires, affichées <b style="display:inline">petite / grosse</b>.
+      Elles montent à chaque niveau pour que la partie ne s'éternise pas. L'<em>ante</em>,
+      quand il y en a une, est une petite mise payée par tout le monde en plus.</span>
+    </div>
+    <div class="memo-item">
+      <b>Recave</b>
+      <span>Racheter des jetons après avoir tout perdu. Ici elle est autorisée jusqu'à un niveau
+      ou une heure que tu choisis dans les réglages ; passé ce point, celui qui tombe est éliminé
+      pour de bon.</span>
+    </div>
+    <div class="memo-item">
+      <b>Changer de place</b>
+      <span>Appuie sur un joueur puis sur <em>Reculer</em> ou <em>Avancer</em> : il échange sa
+      place avec son voisin. L'ordre autour de la table est l'ordre du jeu, c'est lui qui décide
+      qui paiera les blindes ensuite.</span>
+    </div>
+    <div class="memo-item">
+      <b>Changer le nombre de joueurs</b>
+      <span>Réglages (⚙) puis l'onglet <em>Joueurs</em> : tu ajoutes, tu retires et tu renommes.
+      Pour repartir de zéro avec une autre table, <em>Nouveau tournoi</em> en bas de l'onglet
+      Tournoi ramène l'écran de départ.</span>
+    </div>`;
 }
 
 /* ===========================================================
@@ -543,6 +682,10 @@ function tabTournoi() {
       <div class="switch">
         <div class="lbl">Montée automatique<span>Passer au niveau suivant tout seul</span></div>
         <button class="toggle ${state.autoNext ? 'on' : ''}" data-tog="autoNext"></button>
+      </div>
+      <div class="switch">
+        <div class="lbl">Suivre le donneur<span>Affiche D / petite / grosse blind. À faire tourner à la main à chaque donne : la plupart du temps, le jeton sur la table suffit.</span></div>
+        <button class="toggle ${state.dealerTracking ? 'on' : ''}" data-tog="dealerTracking"></button>
       </div>
       <div class="switch">
         <div class="lbl">Son<span>Cloche au changement de niveau</span></div>
@@ -662,7 +805,7 @@ function tabMoney() {
       </div>
     </div>
     <div class="field">
-      <label>Répartition du prize pool — ${euro(pool)}</label>
+      <label>Partage de la cagnotte — ${euro(pool)}</label>
       ${pay}
       <div class="row" style="margin-top:8px">
         <button class="btn" id="addPay">+ Une place payée</button>
@@ -684,7 +827,8 @@ function wireSettings() {
     state.players.forEach(p => { p.out = false; p.place = null; p.rebuys = 0; });
     state.i = 0; state.left = durOf(0); state.running = false; state.endsAt = null;
     state.playedSec = 0; state.adhocEnds = null; state.dealer = 0;
-    save(); renderAll(); renderSettings(); toast('Nouveau tournoi prêt');
+    state.started = false;
+    save(); renderAll(); closeSheets(); introOpen();
   });
 
   $$('[data-tog]', b).forEach(t => t.addEventListener('click', () => {
@@ -692,6 +836,7 @@ function wireSettings() {
     state[k] = !state[k];
     t.classList.toggle('on', state[k]);
     if (k === 'keepAwake') keepAwake(state.running);
+    if (k === 'dealerTracking') renderAll();
     if (k === 'sound' && state[k]) beepShort();
     save();
   }));
@@ -1050,10 +1195,10 @@ function applySpectator(snap) {
 
   $('#controls').className = 'spec-grid';
   $('#controls').innerHTML =
-    statCard('Joueurs en lice', snap.alive + ' <small>/ ' + snap.total + '</small>', '', 'hero') +
+    statCard('Joueurs restants', snap.alive + ' <small>/ ' + snap.total + '</small>', '', 'hero') +
     statCard('Recave', snap.rebuy.v, snap.rebuy.sub, snap.rebuy.cls) +
-    statCard('Prize pool', euro(snap.pool)) +
-    statCard('Tapis moyen', chips(snap.avg), 'jetons') +
+    statCard('Cagnotte', euro(snap.pool)) +
+    statCard('Jetons par joueur', chips(snap.avg), 'en moyenne') +
     statCard('Temps de jeu', mmss(snap.played));
 
   const n = snap.names.length;
@@ -1067,6 +1212,7 @@ function applySpectator(snap) {
 
 function bootSpectator(code) {
   spectate = true;
+  $('#intro').classList.add('off');
   document.body.classList.add('spectate');
   $('#btnCalc').style.display = '';
   $('#btnShare').style.display = 'none';
@@ -1118,7 +1264,7 @@ function renderPodium() {
   $('#podBody').innerHTML = `
     <div style="text-align:center;margin-bottom:16px">
       <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.14em;color:var(--faint)">${esc(state.name)}</div>
-      <div style="font-size:.85rem;color:var(--muted);margin-top:3px">Prize pool ${euro(prizePool())} · ${state.players.length} joueurs</div>
+      <div style="font-size:.85rem;color:var(--muted);margin-top:3px">Cagnotte ${euro(prizePool())} · ${state.players.length} joueurs</div>
     </div>
     <div class="podium">${rows}</div>`;
 }
@@ -1181,7 +1327,7 @@ function exportImage() {
   x.textAlign = 'center';
   x.fillStyle = '#5b7a70';
   x.font = '400 24px -apple-system, Helvetica, sans-serif';
-  x.fillText('Prize pool ' + euro(prizePool()) + '  ·  ' + state.players.length + ' joueurs  ·  ' + mmss(state.playedSec) + ' de jeu', W / 2, H - 92);
+  x.fillText('Cagnotte ' + euro(prizePool()) + '  ·  ' + state.players.length + ' joueurs  ·  ' + mmss(state.playedSec) + ' de jeu', W / 2, H - 92);
   x.fillStyle = '#e8c57a';
   x.font = '600 22px -apple-system, Helvetica, sans-serif';
   x.fillText(state.sub || '', W / 2, H - 56);
@@ -1240,6 +1386,15 @@ function wire() {
   });
 
   $('#btnSet').addEventListener('click', () => { renderSettings(); openSheet('#setSheet'); });
+  $('#btnMemo').addEventListener('click', () => { renderMemo(); openSheet('#memoSheet'); });
+  $('#stats').addEventListener('click', () => { renderMemo(); openSheet('#memoSheet'); });
+
+  /* écran de départ */
+  $('#pMinus').addEventListener('click', () => { if (introCount > 2) { introCount--; renderIntroNames(); syncPace(); } });
+  $('#pPlus').addEventListener('click', () => { if (introCount < 12) { introCount++; renderIntroNames(); syncPace(); } });
+  $$('#paceIntro button').forEach(b => b.addEventListener('click', () => { introPace = +b.dataset.pace; syncPace(); }));
+  $('#introGo').addEventListener('click', introStart);
+  $('#introResume').addEventListener('click', introClose);
   $('#brandBtn').addEventListener('click', () => { setTab = 'tour'; syncTabs(); renderSettings(); openSheet('#setSheet'); });
   $('#btnCalc').addEventListener('click', () => { renderCalc(); openSheet('#calcSheet'); });
   $('#btnShare').addEventListener('click', () => { renderShare(); openSheet('#shareSheet'); });
@@ -1274,6 +1429,8 @@ function wire() {
     if (act === 'back')   { p.out = false; p.place = null; save(); renderAll(); toast(p.name + ' revient en jeu'); }
     if (act === 'rebuy')  { p.rebuys++; save(); renderAll(); toast('Recave de ' + p.name + ' · pool ' + euro(prizePool())); }
     if (act === 'deal')   { state.dealer = k; save(); renderSeats(); toast('Bouton sur ' + p.name); }
+    if (act === 'moveL')  swapSeats(k, (k - 1 + state.players.length) % state.players.length);
+    if (act === 'moveR')  swapSeats(k, (k + 1) % state.players.length);
     if (act === 'rename') {
       const v = prompt('Nom du joueur', p.name);
       if (v) { p.name = v.slice(0, 18); save(); renderAll(); }
@@ -1328,6 +1485,7 @@ function syncTabs() {
   wire();
   syncTabs();
   renderAll();
+  if (state.started) introClose(); else introOpen();
   setInterval(tick, 200);
   setInterval(broadcast, 1000);
   let rsT = null;

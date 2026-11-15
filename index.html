@@ -31,6 +31,7 @@
   <symbol id="i-full" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></symbol>
   <symbol id="i-share" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12 3v13M8 7l4-4 4 4M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></symbol>
   <symbol id="i-close" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.7"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .9-1 1.6v.4"/><circle cx="12" cy="17" r="1.1" fill="currentColor"/></symbol>
   <symbol id="i-trophy" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" d="M7 4h10v5a5 5 0 0 1-10 0zM7 6H4.5v1.5A3.5 3.5 0 0 0 7 11M17 6h2.5v1.5A3.5 3.5 0 0 1 17 11M9.5 14h5l-.5 3h2v3H8v-3h2z"/></symbol>
 </svg>
 
@@ -52,6 +53,9 @@
     </button>
     <button class="icon-btn" id="btnShare" title="Écran spectateur">
       <svg><use href="#i-share"></use></svg><span class="lbl">Spectateur</span>
+    </button>
+    <button class="icon-btn" id="btnMemo" title="Mémo : à quoi servent les mots">
+      <svg><use href="#i-help"></use></svg>
     </button>
     <button class="icon-btn" id="btnFull" title="Plein écran">
       <svg><use href="#i-full"></use></svg>
@@ -154,6 +158,55 @@
     <button class="btn primary full" id="btnExport"><svg style="width:18px;height:18px"><use href="#i-share"></use></svg> Exporter en image</button>
   </div>
 </aside>
+
+<!-- ===================== MÉMO ===================== -->
+<aside class="sheet" id="memoSheet" aria-label="Mémo">
+  <div class="sheet-head">
+    <h2>À quoi ça sert&nbsp;?</h2>
+    <span class="spacer"></span>
+    <button class="icon-btn" data-close><svg><use href="#i-close"></use></svg></button>
+  </div>
+  <div class="sheet-body" id="memoBody"></div>
+</aside>
+
+<!-- ===================== ÉCRAN DE DÉPART ===================== -->
+<div class="intro" id="intro">
+  <div class="intro-stage" id="introStage">
+    <div class="intro-logo"><img src="icon-512.png" alt=""></div>
+    <div class="intro-title">Les As de Cointe</div>
+    <div class="intro-sub" id="introSub">RDC Cointe Liège · entre amis</div>
+  </div>
+
+  <div class="intro-setup" id="introSetup">
+    <div class="setup-block">
+      <div class="setup-q">Vous êtes combien&nbsp;?</div>
+      <div class="stepper">
+        <button id="pMinus" aria-label="Un joueur de moins">−</button>
+        <div class="pcount num" id="pCount">8</div>
+        <button id="pPlus" aria-label="Un joueur de plus">+</button>
+      </div>
+    </div>
+
+    <div class="setup-block">
+      <div class="setup-q small">Les prénoms</div>
+      <div class="namegrid" id="nameGrid"></div>
+    </div>
+
+    <div class="setup-block">
+      <div class="setup-q small">Combien de temps par niveau&nbsp;?</div>
+      <div class="seg" id="paceIntro">
+        <button data-pace="10">10 min</button>
+        <button data-pace="15">15 min</button>
+        <button data-pace="20">20 min</button>
+        <button data-pace="30">30 min</button>
+      </div>
+      <div class="setup-hint" id="paceHint"></div>
+    </div>
+
+    <button class="btn primary intro-go" id="introGo">Installer la table</button>
+    <button class="intro-skip" id="introResume">Reprendre le tournoi en cours</button>
+  </div>
+</div>
 
 <div class="pop" id="pop"></div>
 <div class="toast" id="toast"></div>

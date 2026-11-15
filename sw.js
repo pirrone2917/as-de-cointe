@@ -1,6 +1,6 @@
 /* Service worker : l'application reste utilisable sans réseau.
    Stratégie « cache d'abord, mise à jour en arrière-plan ». */
-const CACHE = 'as-de-cointe-v2';
+const CACHE = 'as-de-cointe-v3';
 const FILES = [
   './', './index.html', './styles.css', './app.js', './poker.js',
   './manifest.webmanifest', './icon-192.png', './icon-512.png',
