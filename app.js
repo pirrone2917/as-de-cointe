@@ -524,7 +524,7 @@ function eliminate(k) {
 /* ===========================================================
    ÉCRAN DE DÉPART
    =========================================================== */
-let introCount = 8, introPace = 20, introNames = [];
+let introCount = 8, introPace = 20, introNames = [], introBuyin = 20, introRebuy = 20;
 const EST_GENERIQUE = (n) => /^Joueur \d+$/.test(n || '');
 
 function introOpen() {
@@ -532,9 +532,14 @@ function introOpen() {
   introNames = state.players.map(p => p.name);
   const prem = state.levels.find(l => !l.brk);
   introPace = prem ? prem.min : 20;
+  introBuyin = state.buyin;
+  introRebuy = state.rebuyAmt;
+  $('#fIntroBuyin').value = introBuyin;
+  $('#fIntroRebuy').value = introRebuy;
   $('#introSub').textContent = state.sub;
   $('#introResume').classList.toggle('off', !state.started);
   renderIntroNames();
+  syncPool();
   syncPace();
   $('#intro').classList.remove('off');
 }
@@ -555,6 +560,19 @@ function renderIntroNames() {
   }));
 }
 
+/* la cagnotte se calcule sous les yeux, au fur et à mesure des réglages */
+function syncPool() {
+  const h = $('#poolHint');
+  if (!introBuyin) {
+    h.textContent = 'Partie sans mise : on joue pour l’honneur.';
+    return;
+  }
+  const pool = introCount * introBuyin;
+  h.innerHTML = introCount + ' joueurs × ' + euro(introBuyin) +
+    ' = <b style="color:var(--gold)">' + euro(pool) + '</b> dans la cagnotte' +
+    (introRebuy ? ', et chaque recave ajoute ' + euro(introRebuy) + '.' : '. Pas de recave payante.');
+}
+
 function syncPace() {
   $$('#paceIntro button').forEach(b => b.classList.toggle('on', +b.dataset.pace === introPace));
   const niveaux = state.levels.filter(l => !l.brk).length;
@@ -573,6 +591,8 @@ function introStart() {
   state.players = noms.map((n, i) => ({ id: i + 1, name: n, out: false, place: null, rebuys: 0 }));
   state.nextId = noms.length + 1;
   state.levels.forEach(l => { if (!l.brk) l.min = introPace; });
+  state.buyin = introBuyin;
+  state.rebuyAmt = introRebuy;
   state.i = 0;
   state.left = durOf(0);
   state.running = false;
@@ -1392,8 +1412,10 @@ function wire() {
   $('#stats').addEventListener('click', () => { renderMemo(); openSheet('#memoSheet'); });
 
   /* écran de départ */
-  $('#pMinus').addEventListener('click', () => { if (introCount > 2) { introCount--; renderIntroNames(); syncPace(); } });
-  $('#pPlus').addEventListener('click', () => { if (introCount < 12) { introCount++; renderIntroNames(); syncPace(); } });
+  $('#pMinus').addEventListener('click', () => { if (introCount > 2) { introCount--; renderIntroNames(); syncPool(); syncPace(); } });
+  $('#pPlus').addEventListener('click', () => { if (introCount < 12) { introCount++; renderIntroNames(); syncPool(); syncPace(); } });
+  $('#fIntroBuyin').addEventListener('input', e => { introBuyin = Math.max(0, +e.target.value || 0); syncPool(); });
+  $('#fIntroRebuy').addEventListener('input', e => { introRebuy = Math.max(0, +e.target.value || 0); syncPool(); });
   $$('#paceIntro button').forEach(b => b.addEventListener('click', () => { introPace = +b.dataset.pace; syncPace(); }));
   $('#introGo').addEventListener('click', introStart);
   $('#introResume').addEventListener('click', introClose);

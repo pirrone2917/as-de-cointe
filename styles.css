@@ -931,6 +931,25 @@ body.spectate main { grid-template-columns: minmax(0, 1fr); grid-template-rows: 
   color: var(--ink);
 }
 
+.moneygrid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.money input {
+  height: 46px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.32);
+  color: var(--gold);
+}
+.money span {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--faint);
+  font-weight: 600;
+}
+
 .namegrid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
 .namegrid input {
   height: 38px;
@@ -961,6 +980,22 @@ body.spectate main { grid-template-columns: minmax(0, 1fr); grid-template-rows: 
 @media (max-width: 420px) {
   .namegrid { grid-template-columns: 1fr; }
   .intro-setup { margin-top: 20px; }
+}
+
+/* écran peu haut : on resserre pour que le bouton reste visible */
+@media (max-height: 900px) {
+  .intro-logo { width: clamp(66px, 11vmin, 98px); margin-bottom: 7px; }
+  .intro-title { font-size: clamp(1.35rem, 3.9vmin, 1.95rem); }
+  .intro-sub { font-size: 0.76rem; }
+  .intro-setup { margin-top: 11px; }
+  .setup-block { margin-bottom: 11px; }
+  .setup-q { margin-bottom: 7px; }
+  .stepper button { width: 42px; height: 42px; font-size: 1.4rem; }
+  .pcount { font-size: 2.3rem; min-width: 62px; }
+  .namegrid input { height: 35px; font-size: 0.86rem; }
+  .money input { height: 42px; }
+  .intro-go { height: 48px; }
+  .intro-skip { margin-top: 7px; }
 }
 
 /* ===========================================================
