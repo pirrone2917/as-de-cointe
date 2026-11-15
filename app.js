@@ -51,6 +51,7 @@ function freshState() {
     autoNext: true,
     sound: true,
     dealerTracking: false,
+    tv: false,
     keepAwake: true,
     breakMin: 10,
     adhocEnds: null,
@@ -437,6 +438,36 @@ function renderAll() {
   $('#btnDeal').style.display = state.dealerTracking ? '' : 'none';
 }
 
+/* ===========================================================
+   MODE TÉLÉ
+   Les commandes s'effacent au bout de quelques secondes ;
+   un appui n'importe où les fait revenir. Ça permet d'afficher
+   l'écran sur une télé tout en gardant la tablette utilisable.
+   =========================================================== */
+let chromeT = null;
+
+function showChrome() {
+  document.body.classList.add('chrome-on');
+  clearTimeout(chromeT);
+  if (state.tv) chromeT = setTimeout(() => document.body.classList.remove('chrome-on'), 6000);
+}
+
+function setTv(on) {
+  state.tv = on;
+  document.body.classList.toggle('tv', on);
+  if (on) {
+    document.documentElement.requestFullscreen?.().catch(() => { /* refusé : tant pis */ });
+    showChrome();
+    toast('Mode télé — appuie sur l’écran pour revoir les commandes');
+  } else {
+    clearTimeout(chromeT);
+    document.body.classList.add('chrome-on');
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+  }
+  save();
+  renderAll();
+}
+
 /* ---------- petit message ---------- */
 let toastT = null;
 function toast(msg) {
@@ -717,6 +748,11 @@ function tabTournoi() {
         <button class="toggle ${state.keepAwake ? 'on' : ''}" data-tog="keepAwake"></button>
       </div>
     </div>
+    <div class="field">
+      <label>Affichage</label>
+      <button class="btn full" id="fTv">📺 ${state.tv ? 'Quitter le mode télé' : 'Passer en mode télé'}</button>
+      <div class="hint">Chrono géant, commandes escamotées, chiffres lisibles de loin. Idéal si tu renvoies l’écran de la tablette sur une télé. Un appui sur l’écran ramène les commandes quelques secondes.</div>
+    </div>
     <div class="field" style="margin-top:26px">
       <button class="btn danger full" id="fReset">Nouveau tournoi (tout remettre à zéro)</button>
       <div class="hint">Les joueurs, la structure et les réglages sont conservés. Seuls le chrono, les éliminations et les recaves repartent à zéro.</div>
@@ -844,6 +880,7 @@ function wireSettings() {
   bind('#fName', 'input', e => { state.name = e.target.value || 'Tournoi'; renderBrand(); save(); });
   bind('#fSub', 'input', e => { state.sub = e.target.value; renderBrand(); save(); });
   bind('#fBreakMin', 'input', e => { state.breakMin = Math.max(1, +e.target.value || 10); save(); });
+  bind('#fTv', 'click', () => { const on = !state.tv; closeSheets(); setTv(on); });
   bind('#fReset', 'click', () => {
     if (!confirm('Nouveau tournoi ? Le chrono, les éliminations et les recaves repartent à zéro.')) return;
     state.players.forEach(p => { p.out = false; p.place = null; p.rebuys = 0; });
@@ -1431,6 +1468,11 @@ function wire() {
     else document.documentElement.requestFullscreen?.().catch(() => toast('Plein écran indisponible'));
   });
 
+  $('#btnTvExit').addEventListener('click', () => setTv(false));
+
+  /* en mode télé, un appui n'importe où ramène les commandes */
+  $('#app').addEventListener('pointerdown', () => { if (state.tv) showChrome(); }, true);
+
   $$('[data-close]').forEach(b => b.addEventListener('click', closeSheets));
   $('#scrim').addEventListener('click', closeSheets);
 
@@ -1510,6 +1552,8 @@ function syncTabs() {
   syncTabs();
   renderAll();
   if (state.started) introClose(); else introOpen();
+  document.body.classList.toggle('tv', !!state.tv);
+  showChrome();
   setInterval(tick, 200);
   setInterval(broadcast, 1000);
   let rsT = null;

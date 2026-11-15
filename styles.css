@@ -1039,3 +1039,105 @@ body.spectate main { grid-template-columns: minmax(0, 1fr); grid-template-rows: 
   0%, 100% { transform: none; box-shadow: 0 10px 28px rgba(232, 197, 122, 0.22); }
   50%      { transform: scale(1.04); box-shadow: 0 10px 40px rgba(232, 197, 122, 0.5); }
 }
+
+/* ===========================================================
+   Mode télé
+   L'écran devient un panneau d'affichage : commandes escamotées,
+   chrono géant, chiffres lisibles depuis le fond de la pièce.
+   Un appui ramène les commandes pendant quelques secondes.
+   =========================================================== */
+
+.tv-only { display: none; }
+body.tv .tv-only { display: inline-flex; }
+
+body.tv #app { grid-template-rows: 1fr; }
+
+body.tv .top,
+body.tv .controls {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 25;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.45s, transform 0.45s;
+}
+body.tv .top {
+  top: 0;
+  transform: translateY(-14px);
+  padding-top: calc(10px + var(--safe-t));
+  background: linear-gradient(180deg, rgba(4, 12, 10, 0.92), transparent);
+}
+body.tv .controls {
+  bottom: calc(96px + var(--safe-b));
+  transform: translateY(14px);
+  justify-content: center;
+}
+body.tv.chrome-on .top,
+body.tv.chrome-on .controls {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+/* la colonne de statistiques devient un bandeau en bas de l'écran */
+body.tv .stats {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  flex-direction: row;
+  justify-content: center;
+  align-items: stretch;
+  gap: 10px;
+  padding: 10px max(16px, var(--safe-l)) calc(10px + var(--safe-b));
+  background: linear-gradient(0deg, rgba(4, 12, 10, 0.95), transparent);
+  overflow: visible;
+}
+body.tv .stats .stat {
+  flex: 0 1 190px;
+  text-align: center;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.05);
+}
+body.tv .stats .stat .k { font-size: 0.6rem; letter-spacing: 0.14em; }
+body.tv .stats .stat .v { font-size: 1.5rem; }
+body.tv .stats .stat.hero .v { font-size: 2rem; }
+
+/* le centre prend toute la place */
+/* on réserve le bas pour le bandeau de chiffres, sinon le siège
+   du bas de la table passe dessous */
+body.tv main { padding: 0 24px calc(104px + var(--safe-b)); }
+body.tv .table-wrap { max-width: none; }
+body.tv .center { width: min(54%, 760px); }
+body.tv .clock {
+  font-size: clamp(5rem, 21vmin, 15rem);
+  font-weight: 200;
+}
+body.tv .level-chip { font-size: 0.9rem; padding: 6px 18px; letter-spacing: 0.2em; }
+body.tv .blinds-now { font-size: clamp(2rem, 6vmin, 4.2rem); }
+body.tv .blinds-next { font-size: clamp(0.95rem, 2vmin, 1.4rem); }
+body.tv .bar { height: 6px; margin-top: 18px; }
+
+body.tv .seat { width: 116px; }
+body.tv .seat .av { width: 66px; height: 66px; font-size: 1.15rem; }
+body.tv .seat .nm { font-size: 0.98rem; }
+
+/* sur un écran large, on peut aérer encore */
+@media (min-width: 1400px) {
+  body.tv .seat { width: 140px; }
+  body.tv .seat .av { width: 78px; height: 78px; font-size: 1.3rem; }
+  body.tv .seat .nm { font-size: 1.1rem; }
+  body.tv .stats .stat { flex: 0 1 230px; padding: 11px 18px; }
+  body.tv .stats .stat .v { font-size: 1.8rem; }
+  body.tv .stats .stat.hero .v { font-size: 2.5rem; }
+}
+
+/* téléphone en mode télé : on retire la table, seul le chrono compte */
+@media (max-width: 700px) {
+  body.tv .felt, body.tv .seats { display: none; }
+  body.tv .center { width: 92%; }
+  body.tv .stats .stat { flex: 1 1 100px; min-width: 0; }
+  body.tv .stats .stat .v { font-size: 1.1rem; }
+  body.tv .stats .stat.hero .v { font-size: 1.5rem; }
+}
