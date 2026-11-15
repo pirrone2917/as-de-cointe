@@ -547,7 +547,8 @@ function renderIntroNames() {
   const g = $('#nameGrid');
   g.innerHTML = Array.from({ length: introCount }, (_, i) => {
     const v = EST_GENERIQUE(introNames[i]) ? '' : (introNames[i] || '');
-    return `<input type="text" maxlength="18" placeholder="Joueur ${i + 1}" value="${esc(v)}" data-n="${i}">`;
+    return `<input type="text" maxlength="18" placeholder="Joueur ${i + 1}" value="${esc(v)}" data-n="${i}"
+      autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false">`;
   }).join('');
   $$('[data-n]', g).forEach(inp => inp.addEventListener('input', e => {
     introNames[+e.target.dataset.n] = e.target.value;
@@ -749,7 +750,8 @@ function tabPlayers() {
   const list = state.players.map((p, i) => `
     <div class="pitem ${p.out ? 'out' : ''}">
       <div class="av-sm">${initials(p.name)}</div>
-      <input type="text" data-pname="${i}" value="${esc(p.name)}" maxlength="18">
+      <input type="text" data-pname="${i}" value="${esc(p.name)}" maxlength="18"
+        autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false">
       ${p.rebuys ? '<span class="tag">+' + p.rebuys + '</span>' : ''}
       ${p.out ? '<span class="tag">' + (p.place ? ord(p.place) : '?') + '</span>' : ''}
       <button class="del" data-pdel="${i}" style="width:34px">✕</button>
