@@ -1,0 +1,16 @@
+{
+  "name": "Les As de Cointe",
+  "short_name": "As de Cointe",
+  "description": "Horloge de tournoi de poker : blindes, chrono, joueurs et recaves.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#071210",
+  "theme_color": "#071210",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

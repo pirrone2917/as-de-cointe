@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Les As de Cointe</title>
+<meta name="description" content="Horloge de tournoi de poker : blindes, chrono, joueurs et recaves.">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#071210">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Les As de Cointe">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-play" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5.2v13.6c0 .8.9 1.3 1.6.9l10.6-6.8c.6-.4.6-1.4 0-1.8L9.6 4.3c-.7-.4-1.6 0-1.6.9z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path fill="currentColor" d="M7 4h3.2v16H7zm6.8 0H17v16h-3.2z"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path fill="currentColor" d="M5 5.4v13.2c0 .8.9 1.3 1.6.8l8.8-6.6c.5-.4.5-1.2 0-1.6L6.6 4.6C5.9 4.1 5 4.6 5 5.4zM17.4 4H20v16h-2.6z"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 24 24"><path fill="currentColor" d="M19 5.4v13.2c0 .8-.9 1.3-1.6.8l-8.8-6.6c-.5-.4-.5-1.2 0-1.6l8.8-6.6c.7-.5 1.6 0 1.6.8zM6.6 4H4v16h2.6z"/></symbol>
+  <symbol id="i-reset" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M20 12a8 8 0 1 1-2.6-5.9M20 4v4h-4"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-coffee" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M4 9h12v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4zM16 10h1.5a2.5 2.5 0 0 1 0 5H16M7 3v2.5M11 3v2.5"/></symbol>
+  <symbol id="i-deal" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" d="M9.5 4.2 4 6.2l3.2 9.9 5.5-2zM11 4.4l5.6-1.3 2.9 10.3-5 1.4"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.7" d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4z"/><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" d="m19.3 14.4.1-.6a7.4 7.4 0 0 0 0-3.6l1.7-1.3-1.8-3.1-2 .8a7.4 7.4 0 0 0-3.1-1.8L13.8 3h-3.6l-.4 2.1a7.4 7.4 0 0 0-3.1 1.8l-2-.8L2.9 9.2l1.7 1.3a7.4 7.4 0 0 0 0 3.6l-1.7 1.3 1.8 3.1 2-.8a7.4 7.4 0 0 0 3.1 1.8l.4 2.1h3.6l.4-2.1a7.4 7.4 0 0 0 3.1-1.8l2 .8 1.8-3.1z"/></symbol>
+  <symbol id="i-cards" viewBox="0 0 24 24"><path fill="currentColor" d="M12 4.6c-.3 0-4.4 3-4.4 5.6 0 1.5 1.1 2.5 2.4 2.5.8 0 1.4-.3 1.7-.8l-.7 3.6h2l-.7-3.6c.3.5.9.8 1.7.8 1.3 0 2.4-1 2.4-2.5 0-2.6-4.1-5.6-4.4-5.6z"/><rect x="3" y="2" width="18" height="20" rx="3" fill="none" stroke="currentColor" stroke-width="1.7"/></symbol>
+  <symbol id="i-full" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12 3v13M8 7l4-4 4 4M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-trophy" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" d="M7 4h10v5a5 5 0 0 1-10 0zM7 6H4.5v1.5A3.5 3.5 0 0 0 7 11M17 6h2.5v1.5A3.5 3.5 0 0 1 17 11M9.5 14h5l-.5 3h2v3H8v-3h2z"/></symbol>
+</svg>
+
+<div id="app">
+
+  <header class="top">
+    <button class="brand" id="brandBtn" title="Réglages du tournoi">
+      <img src="icon-192.png" alt="">
+      <span class="txt">
+        <strong id="brandName">Les As de Cointe</strong>
+        <em id="brandSub">Tournoi entre amis</em>
+      </span>
+    </button>
+
+    <span class="spacer"></span>
+
+    <button class="icon-btn gold" id="btnCalc" title="Comparer deux mains">
+      <svg><use href="#i-cards"></use></svg><span class="lbl">Qui gagne ?</span>
+    </button>
+    <button class="icon-btn" id="btnShare" title="Écran spectateur">
+      <svg><use href="#i-share"></use></svg><span class="lbl">Spectateur</span>
+    </button>
+    <button class="icon-btn" id="btnFull" title="Plein écran">
+      <svg><use href="#i-full"></use></svg>
+    </button>
+    <button class="icon-btn" id="btnSet" title="Réglages">
+      <svg><use href="#i-gear"></use></svg>
+    </button>
+  </header>
+
+  <main>
+    <section class="table-area">
+      <div class="table-wrap" id="tableWrap">
+        <div class="felt"></div>
+        <div class="seats" id="seats"></div>
+        <div class="center">
+          <div class="level-chip" id="levelChip">Niveau 1</div>
+          <div class="clock num" id="clock">20:00</div>
+          <div class="blinds-now num" id="blindsNow">25 / 50</div>
+          <div class="blinds-next num" id="blindsNext">Ensuite : 50 / 100</div>
+          <div class="bar" id="bar"><i></i></div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="stats" id="stats"></aside>
+  </main>
+
+  <footer class="controls" id="controls">
+    <button class="ctl" id="btnPrev" title="Niveau précédent"><svg><use href="#i-prev"></use></svg>Précédent</button>
+    <button class="ctl" id="btnReset" title="Remettre le niveau à zéro"><svg><use href="#i-reset"></use></svg>Relancer</button>
+    <button class="ctl play" id="btnPlay"><svg><use href="#i-play"></use></svg><span>Démarrer</span></button>
+    <button class="ctl" id="btnAdd" title="Ajouter une minute"><svg><use href="#i-plus"></use></svg>1 min</button>
+    <button class="ctl" id="btnNext" title="Niveau suivant"><svg><use href="#i-next"></use></svg>Suivant</button>
+    <button class="ctl" id="btnDeal" title="Faire tourner le bouton"><svg><use href="#i-deal"></use></svg>Donne</button>
+    <button class="ctl" id="btnBreak" title="Pause"><svg><use href="#i-coffee"></use></svg>Pause</button>
+  </footer>
+
+</div>
+
+<!-- plein écran de pause -->
+<div class="breaker" id="breaker">
+  <div class="t">Pause</div>
+  <div class="c num" id="breakClock">10:00</div>
+  <div class="n" id="breakNext">Reprise en niveau 6 — 150 / 300</div>
+  <button class="btn" id="breakSkip" style="margin-top:14px">Reprendre maintenant</button>
+</div>
+
+<div class="scrim" id="scrim"></div>
+
+<!-- ===================== RÉGLAGES ===================== -->
+<aside class="sheet" id="setSheet" aria-label="Réglages">
+  <div class="sheet-head">
+    <h2>Réglages</h2>
+    <span class="spacer"></span>
+    <button class="icon-btn" data-close><svg><use href="#i-close"></use></svg></button>
+  </div>
+  <div class="tabs" id="setTabs">
+    <button class="tab on" data-tab="tour">Tournoi</button>
+    <button class="tab" data-tab="blinds">Blindes</button>
+    <button class="tab" data-tab="players">Joueurs</button>
+    <button class="tab" data-tab="money">Argent</button>
+  </div>
+  <div class="sheet-body" id="setBody"></div>
+  <div class="sheet-foot">
+    <button class="btn full" id="btnPodium"><svg style="width:18px;height:18px"><use href="#i-trophy"></use></svg> Classement</button>
+    <button class="btn primary full" data-close>Terminé</button>
+  </div>
+</aside>
+
+<!-- ===================== QUI GAGNE ? ===================== -->
+<aside class="sheet wide" id="calcSheet" aria-label="Qui gagne ?">
+  <div class="sheet-head">
+    <h2>Qui gagne&nbsp;?</h2>
+    <span class="spacer"></span>
+    <button class="icon-btn" id="calcClear">Vider</button>
+    <button class="icon-btn" data-close><svg><use href="#i-close"></use></svg></button>
+  </div>
+  <div class="sheet-body" id="calcBody"></div>
+</aside>
+
+<!-- ===================== SPECTATEUR ===================== -->
+<aside class="sheet" id="shareSheet" aria-label="Écran spectateur">
+  <div class="sheet-head">
+    <h2>Écran spectateur</h2>
+    <span class="spacer"></span>
+    <button class="icon-btn" data-close><svg><use href="#i-close"></use></svg></button>
+  </div>
+  <div class="sheet-body" id="shareBody"></div>
+</aside>
+
+<!-- ===================== CLASSEMENT ===================== -->
+<aside class="sheet" id="podSheet" aria-label="Classement">
+  <div class="sheet-head">
+    <h2>Classement</h2>
+    <span class="spacer"></span>
+    <button class="icon-btn" data-close><svg><use href="#i-close"></use></svg></button>
+  </div>
+  <div class="sheet-body" id="podBody"></div>
+  <div class="sheet-foot">
+    <button class="btn primary full" id="btnExport"><svg style="width:18px;height:18px"><use href="#i-share"></use></svg> Exporter en image</button>
+  </div>
+</aside>
+
+<div class="pop" id="pop"></div>
+<div class="toast" id="toast"></div>
+
+<script src="poker.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
