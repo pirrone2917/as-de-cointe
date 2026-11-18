@@ -66,6 +66,13 @@ function freshState() {
     rebuyLevel: 5,
     rebuyTime: '22:30',
     payouts: [50, 30, 20],
+    /* mallette classique du commerce : jetons « dés », sans valeur imprimée */
+    chips: [
+      { name: 'Blanc', css: '#f3f3f0', n: 100, v: 1 },
+      { name: 'Rouge', css: '#d1403a', n: 100, v: 5 },
+      { name: 'Bleu',  css: '#3a6cb0', n: 50,  v: 10 },
+      { name: 'Noir',  css: '#23262b', n: 50,  v: 25 }
+    ],
     code: randCode()
   };
 }
@@ -644,6 +651,160 @@ function introStart() {
 }
 
 /* ===========================================================
+   LES JETONS
+   Combien en donner à chacun, et quelles blindes en découlent.
+   =========================================================== */
+
+const CHIP_PRESETS = {
+  m300: [
+    { name: 'Blanc', css: '#f3f3f0', n: 100, v: 1 },
+    { name: 'Rouge', css: '#d1403a', n: 100, v: 5 },
+    { name: 'Bleu',  css: '#3a6cb0', n: 50,  v: 10 },
+    { name: 'Noir',  css: '#23262b', n: 50,  v: 25 }
+  ],
+  m500: [
+    { name: 'Blanc', css: '#f3f3f0', n: 150, v: 1 },
+    { name: 'Rouge', css: '#d1403a', n: 150, v: 5 },
+    { name: 'Bleu',  css: '#3a6cb0', n: 100, v: 10 },
+    { name: 'Vert',  css: '#2e8b57', n: 50,  v: 25 },
+    { name: 'Noir',  css: '#23262b', n: 50,  v: 100 }
+  ]
+};
+
+/* arrondit une valeur de blinde à un multiple « joli » du plus petit jeton */
+function snapValue(v, unit) {
+  const k = v / unit;
+  if (k <= 1) return unit;
+  const mant = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8];
+  const p = Math.pow(10, Math.floor(Math.log10(k)));
+  let best = p, écart = Infinity;
+  for (const m of mant) {
+    for (const mult of [p, p * 10]) {
+      const c = m * mult;
+      const d = Math.abs(c - k);
+      if (d < écart) { écart = d; best = c; }
+    }
+  }
+  return Math.round(best * unit);
+}
+
+/* combien de jetons de chaque couleur dans le tapis de départ.
+   Du plus petit au plus grand : beaucoup de petits pour payer les
+   premières blindes, peu de gros pour faire le volume. */
+const CHIP_CAPS = [14, 12, 8, 6, 4, 3, 3];
+
+function chipPlan() {
+  const n = state.players.length;
+  const dispo = (state.chips || []).filter(c => c.n > 0 && c.v > 0)
+    .slice().sort((a, b) => a.v - b.v);
+  if (!n || !dispo.length) return null;
+
+  const per = dispo.map((c, i) => Math.max(0, Math.min(
+    Math.floor(c.n / n),
+    CHIP_CAPS[Math.min(i, CHIP_CAPS.length - 1)]
+  )));
+
+  const stack = dispo.reduce((a, c, i) => a + c.v * per[i], 0);
+  if (!stack) return { dispo, per, stack: 0, reste: [], sb: 0, bb: 0, manque: true };
+
+  const reste = dispo.map((c, i) => c.n - per[i] * n);
+  const unit = dispo[0].v;
+
+  /* La petite blinde doit se payer avec un seul jeton : on choisit donc
+     la couleur dont la valeur donne le tapis le plus proche de
+     100 grosses blindes, sans descendre sous 30. La grosse blinde vaut
+     toujours le double. */
+  let sb = unit, écart = Infinity;
+  for (const c of dispo) {
+    const nbBB = stack / (2 * c.v);
+    if (nbBB < 30) continue;
+    const d = Math.abs(nbBB - 100);
+    if (d < écart) { écart = d; sb = c.v; }
+  }
+  const bb = sb * 2;
+
+  return { dispo, per, stack, reste, unit, sb, bb, manque: false };
+}
+
+/* structure de blindes construite sur la valeur des jetons */
+function makeLevels(sb0, unit, pace) {
+  const out = [];
+  let sb = sb0;
+  for (let i = 0; i < 14; i++) {
+    /* la grosse blinde vaut toujours exactement le double de la petite :
+       on n'arrondit donc que la petite */
+    const s = snapValue(sb, unit);
+    out.push({ sb: s, bb: s * 2, ante: 0, min: pace });
+    if (i === 3 || i === 8) out.push({ brk: true, min: state.breakMin || 10 });
+    sb *= 1.6;
+  }
+  return out;
+}
+
+function tabChips() {
+  const p = chipPlan();
+  const rows = (state.chips || []).map((c, i) => `
+    <div class="chip-row" data-ci="${i}">
+      <span class="chip-dot" style="background:${c.css}"></span>
+      <input type="text" data-cf="name" value="${esc(c.name)}" maxlength="10" autocomplete="off">
+      <input type="number" data-cf="n" value="${c.n}" min="0" max="2000" inputmode="numeric">
+      <input type="number" data-cf="v" value="${c.v}" min="0" max="10000" inputmode="numeric">
+      <button class="del" data-cdel="${i}">✕</button>
+    </div>`).join('');
+
+  let plan = '<div class="hint">Indique au moins une couleur avec un nombre et une valeur.</div>';
+  if (p && !p.manque) {
+    const lignes = p.dispo.map((c, i) => `
+      <div class="plan-row">
+        <span class="chip-dot" style="background:${c.css}"></span>
+        <b class="num">${p.per[i]}</b>
+        <span class="nm">${esc(c.name.toLowerCase())}${p.per[i] > 1 ? 's' : ''}</span>
+        <span class="eq num">${p.per[i]} × ${c.v} = ${chips(p.per[i] * c.v)}</span>
+      </div>`).join('');
+    const reste = p.dispo.map((c, i) =>
+      p.reste[i] + ' ' + c.name.toLowerCase() + (p.reste[i] > 1 ? 's' : '')).join(', ');
+    plan = `
+      <div class="plan">
+        <div class="plan-head">Chaque joueur reçoit</div>
+        ${lignes}
+        <div class="plan-total">
+          <span>Tapis de départ</span>
+          <b class="num">${chips(p.stack)} jetons</b>
+        </div>
+      </div>
+      <div class="hint">Il reste <b>${esc(reste)}</b> dans la mallette, de quoi servir les recaves.</div>
+      <div class="field" style="margin-top:18px">
+        <label>Blindes qui vont avec</label>
+        <div class="plan-blinds">
+          <div><span>Premier niveau</span><b class="num">${chips(p.sb)} / ${chips(p.bb)}</b></div>
+          <div><span>Tapis de départ</span><b class="num">${Math.round(p.stack / p.bb)} grosses blindes</b></div>
+        </div>
+        <button class="btn primary full" id="fApplyChips" style="margin-top:11px">Appliquer : tapis et structure des blindes</button>
+        <div class="hint">Remplace le tapis de départ et toute la structure par une progression calée sur tes jetons : la petite blinde du premier niveau se paie avec un seul jeton.</div>
+      </div>`;
+  }
+
+  return `
+    <div class="field">
+      <label>Ta mallette</label>
+      <div class="seg" id="chipPreset">
+        <button data-preset="m300">300 jetons</button>
+        <button data-preset="m500">500 jetons</button>
+      </div>
+      <div class="hint">Les jetons « dés » du commerce n’ont pas de valeur imprimée : c’est toi qui la fixes. Les valeurs ci-dessous sont les plus courantes.</div>
+    </div>
+    <div class="chip-row head">
+      <span></span><div>Couleur</div><div>Combien</div><div>Vaut</div><span></span>
+    </div>
+    ${rows}
+    <button class="btn full" id="fAddChip" style="margin-top:9px">+ Ajouter une couleur</button>
+    <div class="field" style="margin-top:22px">
+      <label>Pour ${state.players.length} joueurs</label>
+      ${plan}
+    </div>`;
+}
+
+/* ===========================================================
    MÉMO
    =========================================================== */
 function renderMemo() {
@@ -684,6 +845,14 @@ function renderMemo() {
       pour de bon.</span>
     </div>
     <div class="memo-item">
+      <b>Combien de jetons donner à chacun</b>
+      <span>Réglages → <em>Jetons</em>. Tu dis ce que contient ta mallette — les couleurs,
+      le nombre et ce que vaut chaque couleur — et l’app calcule ce que reçoit chaque joueur,
+      couleur par couleur, ainsi que ce qu’il reste pour les recaves. Un bouton cale ensuite
+      les blindes sur tes jetons, de façon que la petite blinde du premier niveau se paie
+      avec un seul jeton.</span>
+    </div>
+    <div class="memo-item">
       <b>Changer de place</b>
       <span>Appuie sur un joueur puis sur <em>Reculer</em> ou <em>Avancer</em> : il échange sa
       place avec son voisin. L'ordre autour de la table est l'ordre du jeu, c'est lui qui décide
@@ -708,6 +877,7 @@ function renderSettings() {
   if (setTab === 'blinds')  b.innerHTML = tabBlinds();
   if (setTab === 'players') b.innerHTML = tabPlayers();
   if (setTab === 'money')   b.innerHTML = tabMoney();
+  if (setTab === 'chips')   b.innerHTML = tabChips();
   wireSettings();
 }
 
@@ -986,6 +1156,44 @@ function wireSettings() {
 
   let moneyT = null;
   function refreshMoney() { clearTimeout(moneyT); moneyT = setTimeout(() => { if (setTab === 'money') renderSettings(); }, 700); }
+
+  /* ---------- jetons ---------- */
+  $$('[data-preset]', b).forEach(x => x.addEventListener('click', () => {
+    state.chips = JSON.parse(JSON.stringify(CHIP_PRESETS[x.dataset.preset]));
+    save(); renderSettings();
+  }));
+  $$('.chip-row[data-ci] input', b).forEach(inp => inp.addEventListener('input', e => {
+    const i = +e.target.closest('.chip-row').dataset.ci;
+    const f = e.target.dataset.cf;
+    state.chips[i][f] = (f === 'name') ? e.target.value : Math.max(0, +e.target.value || 0);
+    save();
+    clearTimeout(moneyT);
+    moneyT = setTimeout(() => { if (setTab === 'chips') renderSettings(); }, 800);
+  }));
+  $$('[data-cdel]', b).forEach(x => x.addEventListener('click', () => {
+    if (state.chips.length <= 1) return;
+    state.chips.splice(+x.dataset.cdel, 1); save(); renderSettings();
+  }));
+  bind('#fAddChip', 'click', () => {
+    if (state.chips.length >= 7) { toast('Sept couleurs, ça suffit largement'); return; }
+    const teintes = ['#2e8b57', '#8a5bd6', '#e08b2a', '#c9a227', '#6b7280'];
+    state.chips.push({ name: 'Autre', css: teintes[state.chips.length % teintes.length], n: 50, v: 50 });
+    save(); renderSettings();
+  });
+  bind('#fApplyChips', 'click', () => {
+    const p = chipPlan();
+    if (!p || p.manque) return;
+    const prem = state.levels.find(l => !l.brk);
+    const pace = prem ? prem.min : 20;
+    state.stack = p.stack;
+    state.levels = makeLevels(p.sb, p.unit, pace);
+    state.i = 0;
+    state.left = durOf(0);
+    state.endsAt = state.running ? Date.now() + state.left * 1000 : null;
+    lastWarn = -1;
+    save(); renderAll(); renderSettings();
+    toast('Tapis ' + chips(p.stack) + ' jetons · blindes à partir de ' + chips(p.sb) + ' / ' + chips(p.bb));
+  });
 }
 
 /* ===========================================================
