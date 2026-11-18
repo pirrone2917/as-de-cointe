@@ -794,9 +794,14 @@ function tabChips() {
       <div class="hint">Les jetons « dés » du commerce n’ont pas de valeur imprimée : c’est toi qui la fixes. Les valeurs ci-dessous sont les plus courantes.</div>
     </div>
     <div class="chip-row head">
-      <span></span><div>Couleur</div><div>Combien</div><div>Vaut</div><span></span>
+      <span></span><div>Couleur</div><div>Combien</div><div>Valeur</div><span></span>
     </div>
     ${rows}
+    <div class="hint" style="margin-top:7px">
+      <b>Combien</b> : le nombre de jetons de cette couleur dans ta mallette.
+      <b>Valeur</b> : ce que vaut un seul jeton de cette couleur pendant la partie.
+      Touche un chiffre pour le changer, tout se recalcule.
+    </div>
     <button class="btn full" id="fAddChip" style="margin-top:9px">+ Ajouter une couleur</button>
     <div class="field" style="margin-top:22px">
       <label>Pour ${state.players.length} joueurs</label>
@@ -1016,6 +1021,9 @@ function tabMoney() {
         <div><input type="number" id="fRebuy" value="${state.rebuyAmt}" min="0"><div class="hint">Recave (€)</div></div>
         <div><input type="number" id="fStack" value="${state.stack}" min="1" step="500"><div class="hint">Tapis de départ</div></div>
       </div>
+      <div class="hint">Le tapis est en jetons, pas en euros. Pour fixer ce que vaut
+        chaque couleur et savoir combien en donner à chacun, va dans l’onglet
+        <b>Jetons</b>.</div>
     </div>
     <div class="field">
       <label>Recave possible jusqu’à</label>
